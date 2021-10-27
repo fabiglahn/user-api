@@ -1,14 +1,20 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 const port = 3000;
 
+// Custom middleware to log requests
 app.use((request, _response, next) => {
   console.log('Request received', request.url);
   next();
 });
 
+// Middleware for parsing application/json
 app.use(express.json());
+
+// Middleware for parsing cookies
+app.use(cookieParser());
 
 const users = [
   { name: 'Alice', username: 'alice-petzi', password: 'qwertz' },
@@ -74,9 +80,20 @@ app.post('/api/login', (request, response) => {
       user.password === loginUser.password
   );
   if (existingUser) {
-    response.status(202).send('Welcome!');
+    response.setHeader('Set-Cookie', `username=${existingUser.username}`);
+    response.send('Welcome!');
   } else {
     response.status(401).send('No login for you!');
+  }
+});
+
+app.get('/api/me', (request, response) => {
+  const username = request.cookies.username;
+  const foundUser = users.find((user) => user.username === username);
+  if (foundUser) {
+    response.send(foundUser);
+  } else {
+    response.status(404).send('User not found');
   }
 });
 
