@@ -3,31 +3,80 @@ import express from 'express';
 const app = express();
 const port = 3000;
 
+app.use((request, _response, next) => {
+  console.log('Request received', request.url);
+  next();
+});
+
 app.use(express.json());
 
-const users = ['Alice', 'Manu', 'Fabi'];
+const users = [
+  { name: 'Alice', username: 'alice-petzi', password: 'qwertz' },
+  {
+    name: 'Manu',
+    username: 'manu-bawue',
+    password: 'asdfgh',
+  },
+  {
+    name: 'Fabi',
+    username: 'eff_geh',
+    password: 'yxcvb',
+  },
+];
 
-app.post('/api/users', (request, response) => {
-  response.send(request.body.name);
+// Get a single user
+app.get('/api/users/:username', (request, response) => {
+  const user = users.find((user) => user.username === request.params.username);
+  if (user) {
+    response.send(user);
+  } else {
+    response.status(404).send('This page is not here!');
+  }
 });
 
-app.delete('/api/users/:name', (request, response) => {
-  const index = users.indexOf(request.params.name);
-  if (index === -1) {
-    response.status(404).send('Sorry! Name is unknown! :(');
+// Delete a user
+app.delete('/api/users/:username', (request, response) => {
+  const usersIndex = users.findIndex(
+    (user) => user.username === request.params.username
+  );
+  if (usersIndex === -1) {
+    response.status(404).send('Name is unknown');
     return;
   }
-
-  users.splice(index, 1);
-  response.send('deleted');
+  users.splice(usersIndex, 1);
+  response.send('Deleted');
 });
 
-app.get('/api/users/:name', (request, response) => {
-  const isKnownName = users.includes(request.params.name);
-  if (isKnownName) {
-    response.send(request.params.name);
+app.post('/api/users', (request, response) => {
+  const newUser = request.body;
+  if (
+    typeof newUser.name !== 'string' ||
+    typeof newUser.username !== 'string' ||
+    typeof newUser.password !== 'string'
+  ) {
+    response.status(400).send('Missing properties');
+    return;
+  }
+  if (users.some((user) => user.username === newUser.username)) {
+    response.status(409).send('User already exists');
   } else {
-    response.status(404).send('Sorry! Name is unknown! :(');
+    users.push(newUser);
+    response.send(`${newUser.name} added`);
+  }
+});
+
+// Login a new user
+app.post('/api/login', (request, response) => {
+  const loginUser = request.body;
+  const existingUser = users.find(
+    (user) =>
+      user.username === loginUser.username &&
+      user.password === loginUser.password
+  );
+  if (existingUser) {
+    response.status(202).send('Welcome!');
+  } else {
+    response.status(401).send('No login for you!');
   }
 });
 
